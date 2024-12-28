@@ -7,7 +7,7 @@ int main()
 {
     GLManager gl_manager;
     gl_manager.init(); 
-
+    gl_manager.enable_debug();
     gl_manager.create_graphics_pipeline();
 
     SDL_Event event;
