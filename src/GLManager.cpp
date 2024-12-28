@@ -1,0 +1,269 @@
+#include <iostream>
+#include <SDL2/SDL.h>
+#include <vector>
+#include <fstream>
+
+#include "GLManager.hpp"
+#include "../include/glad/glad.h"
+
+void GLManager::show_gl_version_info()
+{
+    std::cout << "Vendor: " << glGetString(GL_VENDOR) << "\n";
+    std::cout << "Renderer: " << glGetString(GL_RENDERER) << "\n";
+    std::cout << "Version: " << glGetString(GL_VERSION) << "\n";
+    std::cout << "Shading Language: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << "\n";
+}
+
+void GLManager::debug_message(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* user_param)
+{
+    std::string message_str(message, length);
+    std::cout << "GL Debug Message: " << message_str << "\n";
+}
+
+void GLManager::enable_debug()
+{
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(debug_message, nullptr);
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+}
+
+void GLManager::init()
+{
+    if(SDL_Init(SDL_INIT_VIDEO) < 0)
+    {
+        std::cerr << "Error al inicializar SDL: " << SDL_GetError() << std::endl;
+        exit(1);
+    }
+
+
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
+    window = SDL_CreateWindow(
+        "OpenGL", 
+        SDL_WINDOWPOS_CENTERED, 
+        SDL_WINDOWPOS_CENTERED, 
+        800, 600, 
+        SDL_WINDOW_OPENGL
+    );
+
+    if(window == nullptr)
+    {
+        std::cerr << "Error al crear ventana: " << SDL_GetError() << std::endl;
+        exit(1);
+    }
+    
+    context = SDL_GL_CreateContext(window);
+    
+    if(context == nullptr)
+    {
+        std::cerr << "Error al crear contexto OpenGL: " << SDL_GetError() << std::endl;
+        exit(1);
+    }
+
+    if(!gladLoadGLLoader(SDL_GL_GetProcAddress))
+    {
+        std::cerr << "Error al inicializar GLAD" << std::endl;
+        exit(1);
+    }
+
+    show_gl_version_info();
+
+}
+
+void GLManager::specify_vertices()
+{
+    // -> data de vértices en CPU: xyz normalizados [-1, 1] y rgb normalizados [0, 1]  (en CPU)
+    std::vector<GLfloat> vertex_data
+    {
+        // -> triángulo 1
+        -1.0f, -1.0f, 0.0f, // -> v inferior izquierdo
+        1.0f, 0.0f, 1.0f, // -> rgb
+        1.0f, -1.0f, 0.0f, // -> v inferior derecho
+        0.0f, 1.0f, 1.0f, // -> rgb
+        -1.0f, 1.0f, 0.0f, // -> v superior izquierdo
+        1.0f, 1.0f, 0.0f, // -> rgb
+
+        // -> triángulo 2
+        1.0f, -1.0f, 0.0f, // -> v inferior derecho
+        0.0f, 1.0f, 1.0f, // -> rgb
+        1.0f, 1.0f, 0.0f, // -> v superior derecho
+        1.0f, 0.0f, 1.0f, // -> rgb
+        -1.0f, 1.0f, 0.0f, // -> v superior izquierdo
+        1.0f, 1.0f, 0.0f // -> rgb
+
+    };
+
+    // -> crear VAO
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    // -> crear VBO
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        sizeof(GLfloat) * vertex_data.size(),
+        vertex_data.data(),
+        GL_STATIC_DRAW
+    );
+    
+    // -> especificar atributos de vértices
+    glEnableVertexAttribArray(0); // -> habilita el atributo de vértice 0 (posición)
+    glVertexAttribPointer(
+        0, // -> atributo de vértice 0
+        3, // -> 3 componentes de posición (xyz)
+        GL_FLOAT, // > tipo de dato
+        GL_FALSE, // -> normalizar
+        sizeof(GLfloat) * 6, // -> stride
+        0 // -> offset
+    );
+
+    glEnableVertexAttribArray(1); // -> habilita el atributo de vértice 1 (color)
+    glVertexAttribPointer(
+        1, // -> atributo de vértice 1
+        3, // -> 3 componentes de color (rgb)
+        GL_FLOAT, // -> tipo de dato
+        GL_FALSE, // -> normalizar
+        sizeof(GLfloat) * 6, // -> stride
+        (GLvoid*)(sizeof(GL_FLOAT) * 3) // -> offset (rgb empieza en la posición 3)
+    );
+
+    // -> limpiar
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDisableVertexAttribArray(0);  
+    glDisableVertexAttribArray(1);
+
+}
+
+const std::string GLManager::load_shaders(const std::string& shader_src)
+{
+    std::ifstream file(shader_src);
+    std::string source;
+
+    if(file.is_open())
+    {
+        std::string line;
+        while(std::getline(file, line))
+        {
+            source += line + "\n";
+        }
+
+        file.close();
+
+    }
+
+    return source;
+}
+
+GLuint GLManager::compile_shader(const std::string& shader_src, GLenum shader_type)
+{
+    GLuint shader = glCreateShader(shader_type);
+    const char* src = shader_src.c_str();
+    glShaderSource(shader, 1, &src, nullptr);
+    glCompileShader(shader);
+
+    GLint success;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if(!success)
+    {
+        GLchar info_log[512];
+        glGetShaderInfoLog(shader, 512, nullptr, info_log);
+        std::cerr << "Error al compilar shader: " << info_log << std::endl;
+    }
+
+
+    return shader;
+}
+
+void GLManager::set_shaders()
+{
+
+    const std::string vertex_shader_source = load_shaders("./shaders/vertex_shader_src.glsl");
+    const std::string fragment_shader_source = load_shaders("./shaders/frag_shader_src.glsl");
+
+    // -> crear shader program
+    shader_program = glCreateProgram();
+
+    // -> compilación de shaders
+    GLuint vertex_shader = compile_shader(vertex_shader_source, GL_VERTEX_SHADER);
+    GLuint fragment_shader = compile_shader(fragment_shader_source, GL_FRAGMENT_SHADER);
+
+    // -> adjuntar shaders al programa
+    glAttachShader(shader_program, vertex_shader);
+    glAttachShader(shader_program, fragment_shader);
+
+    // -> enlazar programa
+    glLinkProgram(shader_program);
+
+    // -> verificar errores de enlace
+    GLint success;
+    glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
+    if(!success)
+    {
+        GLchar info_log[512];
+        glGetProgramInfoLog(shader_program, 512, nullptr, info_log);
+        std::cerr << "Error al enlazar shaders: " << info_log << std::endl;
+    }
+
+    // -> limpiar shaders (ya están adjuntados al programa de shaders) 
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+
+}
+
+void GLManager::create_graphics_pipeline()
+{
+    // Pipeline de OpenGL
+    specify_vertices();
+    set_shaders();
+}
+
+void GLManager::render_quad()
+{
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+
+    glViewport(0, 0, 800, 600);
+    glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(shader_program);
+
+    float current_time = (float) SDL_GetTicks() / 1000.0f;
+
+    GLint time_location = glGetUniformLocation(shader_program, "u_time");
+    glUniform1f(time_location, current_time);
+
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    
+}
+
+void GLManager::swap_window()
+{
+    SDL_GL_SwapWindow(window);
+}
+
+GLManager::~GLManager()
+{
+
+    if(context)
+    {
+        SDL_GL_DeleteContext(context);
+    }
+
+    if(window)
+    {
+        SDL_DestroyWindow(window);
+    }
+
+    SDL_Quit();
+}
