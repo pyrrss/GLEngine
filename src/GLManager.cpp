@@ -82,16 +82,16 @@ void GLManager::specify_vertices()
     {
         // -> 0 - vértice 1
         -0.5f, -0.5f, 0.0f, // -> v inferior izquierdo
-        1.0f, 0.0f, 1.0f, // -> rgb
+        0.0f, 1.0f, 1.0f, // -> rgb
         // -> 1 - vértice 2
         0.5f, -0.5f, 0.0f, // -> v inferior derecho
-        0.0f, 1.0f, 1.0f, // -> rgb
+        1.0f, 0.0f, 1.0f, // -> rgb
         // -> 2 - vértice 3
         0.5f, 0.5f, 0.0f, // -> v superior derecho
-        1.0f, 0.0f, 1.0f, // -> rgb
+        0.0f, 1.0f, 1.0f, // -> rgb
         // -> 3 - vértice 4
         -0.5f, 0.5f, 0.0f, // -> v superior izquierdo
-        1.0f, 1.0f, 0.0f, // -> rgb
+        1.0f, 0.0f, 1.0f, // -> rgb
 
     };
 
