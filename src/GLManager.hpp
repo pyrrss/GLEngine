@@ -12,6 +12,7 @@ class GLManager
         SDL_GLContext context;
         GLuint vao;
         GLuint vbo;
+        GLuint ibo;
         GLuint shader_program;
         
         void show_gl_version_info(); // -> muestra info de OpenGL

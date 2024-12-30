@@ -77,24 +77,21 @@ void GLManager::init()
 
 void GLManager::specify_vertices()
 {
-    // -> data de vértices en CPU: xyz normalizados [-1, 1] y rgb normalizados [0, 1]  (en CPU)
+    // -> data de vértices: xyz normalizados [-1, 1] y rgb normalizados [0, 1]
     std::vector<GLfloat> vertex_data
     {
-        // -> triángulo 1
-        -1.0f, -1.0f, 0.0f, // -> v inferior izquierdo
+        // -> 0 - vértice 1
+        -0.5f, -0.5f, 0.0f, // -> v inferior izquierdo
         1.0f, 0.0f, 1.0f, // -> rgb
-        1.0f, -1.0f, 0.0f, // -> v inferior derecho
+        // -> 1 - vértice 2
+        0.5f, -0.5f, 0.0f, // -> v inferior derecho
         0.0f, 1.0f, 1.0f, // -> rgb
-        -1.0f, 1.0f, 0.0f, // -> v superior izquierdo
+        // -> 2 - vértice 3
+        0.5f, 0.5f, 0.0f, // -> v superior derecho
+        1.0f, 0.0f, 1.0f, // -> rgb
+        // -> 3 - vértice 4
+        -0.5f, 0.5f, 0.0f, // -> v superior izquierdo
         1.0f, 1.0f, 0.0f, // -> rgb
-
-        // -> triángulo 2
-        1.0f, -1.0f, 0.0f, // -> v inferior derecho
-        0.0f, 1.0f, 1.0f, // -> rgb
-        1.0f, 1.0f, 0.0f, // -> v superior derecho
-        1.0f, 0.0f, 1.0f, // -> rgb
-        -1.0f, 1.0f, 0.0f, // -> v superior izquierdo
-        1.0f, 1.0f, 0.0f // -> rgb
 
     };
 
@@ -133,9 +130,27 @@ void GLManager::specify_vertices()
         (GLvoid*)(sizeof(GL_FLOAT) * 3) // -> offset (rgb empieza en la posición 3)
     );
 
+    // -> crear IBO / EBO
+    std::vector<GLuint> index_data
+    {
+        0, 1, 3,
+        3, 2, 1
+    };
+
+    glGenBuffers(1, &ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    glBufferData(
+        GL_ELEMENT_ARRAY_BUFFER,
+        sizeof(GLuint) * index_data.size(),
+        index_data.data(),
+        GL_STATIC_DRAW
+    );
+
+
     // -> limpiar
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glDisableVertexAttribArray(0);  
     glDisableVertexAttribArray(1);
 
@@ -242,9 +257,9 @@ void GLManager::render_quad()
 
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);    
 }
 
 void GLManager::swap_window()
