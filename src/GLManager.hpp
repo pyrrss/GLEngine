@@ -14,7 +14,11 @@ class GLManager
         GLuint vbo;
         GLuint ibo;
         GLuint shader_program;
-        
+        GLfloat uv_offset = 0.0f;
+        GLfloat uh_offset = 0.0f;
+        GLfloat u_mouse_pos_x = 0.0f;
+        GLfloat u_mouse_pos_y = 0.0f;
+
         void show_gl_version_info(); // -> muestra info de OpenGL
         static void debug_message(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* user_param); // -> callback de mensajes de debug
         void specify_vertices(); // -> especifica vertices y setea VAO y VBO
@@ -30,6 +34,14 @@ class GLManager
         void swap_window(); // -> intercambia buffers de ventana
         void create_graphics_pipeline(); // -> crea pipeline de OpenGL
         void render_quad(); // -> renderiza cuadrado
+        void set_uvoffset(GLfloat delta);
+        GLfloat get_uvoffset();
+        void set_uhoffset(GLfloat delta);
+        GLfloat get_uhoffset();
+        void set_u_mousepos(GLfloat x, GLfloat y);
+
 };
+
+
 
 #endif

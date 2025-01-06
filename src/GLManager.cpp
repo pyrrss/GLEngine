@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <vector>
 #include <fstream>
+#include <algorithm>
 
 #include "GLManager.hpp"
 #include "../include/glad/glad.h"
@@ -81,16 +82,16 @@ void GLManager::specify_vertices()
     std::vector<GLfloat> vertex_data
     {
         // -> 0 - vértice 1
-        -0.8f, -0.8f, 0.0f, // -> v inferior izquierdo
+        -0.7f, -0.7f, 0.0f, // -> v inferior izquierdo
         0.0f, 1.0f, 1.0f, // -> rgb
         // -> 1 - vértice 2
-        0.8f, -0.8f, 0.0f, // -> v inferior derecho
+        0.7f, -0.7f, 0.0f, // -> v inferior derecho
         1.0f, 0.0f, 1.0f, // -> rgb
         // -> 2 - vértice 3
-        0.8f, 0.8f, 0.0f, // -> v superior derecho
+        0.7f, 0.7f, 0.0f, // -> v superior derecho
         0.0f, 1.0f, 1.0f, // -> rgb
         // -> 3 - vértice 4
-        -0.8f, 0.8f, 0.0f, // -> v superior izquierdo
+        -0.7f, 0.7f, 0.0f, // -> v superior izquierdo
         1.0f, 0.0f, 1.0f, // -> rgb
 
     };
@@ -145,7 +146,6 @@ void GLManager::specify_vertices()
         index_data.data(),
         GL_STATIC_DRAW
     );
-
 
     // -> limpiar
     glBindVertexArray(0);
@@ -245,21 +245,56 @@ void GLManager::render_quad()
     glDisable(GL_CULL_FACE);
 
     glViewport(0, 0, 800, 600);
-    glClearColor(1.0f, 1.0f, 0.0f, 1.0f);
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(shader_program);
 
     float current_time = (float) SDL_GetTicks() / 1000.0f;
 
+    // -> uniforms
     GLint time_location = glGetUniformLocation(shader_program, "u_time");
+    GLint uv_offset_location = glGetUniformLocation(shader_program, "uv_offset");
+    GLint uh_offset_location = glGetUniformLocation(shader_program, "uh_offset");
+    GLint u_mouse_pos_location = glGetUniformLocation(shader_program, "u_mouse_pos");
+
     glUniform1f(time_location, current_time);
+    glUniform1f(uv_offset_location, uv_offset);
+    glUniform1f(uh_offset_location, uh_offset);
+    glUniform2f(u_mouse_pos_location, u_mouse_pos_x, u_mouse_pos_y);
 
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);    
+}
+
+
+void GLManager::set_uvoffset(GLfloat delta)
+{
+    uv_offset = std::clamp(uv_offset + delta, -0.3f, 0.3f);
+}
+
+GLfloat GLManager::get_uvoffset()
+{
+    return uv_offset;
+}
+
+void GLManager::set_uhoffset(GLfloat delta)
+{
+    uh_offset = std::clamp(uh_offset + delta, -0.3f, 0.3f);
+}
+
+GLfloat GLManager::get_uhoffset()
+{
+    return uh_offset;
+}
+
+void GLManager::set_u_mousepos(GLfloat x, GLfloat y)
+{
+    u_mouse_pos_x = (x / 800.0f) * 2.0f - 1.0f;
+    u_mouse_pos_y = - ((y / 600.0f) * 2.0f - 1.0f);
 }
 
 void GLManager::swap_window()
@@ -269,6 +304,10 @@ void GLManager::swap_window()
 
 GLManager::~GLManager()
 {
+    if(shader_program)
+    {
+        glDeleteProgram(shader_program);
+    }
 
     if(context)
     {
