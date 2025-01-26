@@ -1,5 +1,5 @@
 FLAGS = -I./include/ -lSDL2 -ldl
-SRC_FILES = src/main.cpp src/glad.c src/GLManager.cpp
+SRC_FILES = $(wildcard src/*.cpp src/*.c)
 
 
 default:
