@@ -41,8 +41,6 @@ void Camera::move_right(float delta)
 
 void Camera::mouse_look(float x, float y)
 {
-    std::cout << x << " " << y << std::endl;
-
     // -> se crean matrices de rotacion en x e y (yaw y pitch)
     //    y luego se aplican a la direccion de la camara
     glm::mat4 rotation_matrix_x = glm::rotate(glm::mat4(1.0f), glm::radians(-x), up);
@@ -52,10 +50,8 @@ void Camera::mouse_look(float x, float y)
     view_direction = glm::normalize(view_direction);
 }
 
-Camera::~Camera()
-{
-    std::cout << "Camera destructor called" << std::endl;
-}
+Camera::~Camera(){}
+
 
 
 

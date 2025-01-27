@@ -225,6 +225,8 @@ void GLManager::render_quad() {
 
     glUseProgram(shader_program);
 
+    u_rotation_angle += 0.5f;
+
     // -> MVP (Model, View, Projection), Model = T * R * S
     model_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, u_depth_offset));
     model_matrix = glm::rotate(model_matrix, glm::radians(u_rotation_angle), glm::vec3(1.0f, 1.0f, 1.0f));
