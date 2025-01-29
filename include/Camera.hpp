@@ -7,14 +7,18 @@
 class Camera
 {
     private:
-        glm::vec3 eye;
-        glm::vec3 view_direction;
-        glm::vec3 up;
-        
+        glm::vec3 m_eye;
+        glm::vec3 m_view_direction;
+        glm::vec3 m_up;
+ 
+        glm::mat4 m_projection_matrix;
+
     public:
         Camera();
         ~Camera();
+        void set_projection_matrix(float fov, float aspect_ratio, float near, float far);
         glm::mat4 get_view_matrix();
+        glm::mat4 get_projection_matrix();
         void move_forward(float delta);
         void move_backward(float delta);
         void move_left(float delta);

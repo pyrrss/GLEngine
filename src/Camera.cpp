@@ -2,55 +2,66 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/matrix.hpp>
 
 Camera::Camera()
 {
-    eye = glm::vec3(0.0f, 0.0f, 0.0f);
-    view_direction = glm::vec3(0.0f, 0.0f, -1.0f);
-    up = glm::vec3(0.0f, 1.0f, 0.0f);
+    m_eye = glm::vec3(0.0f, 0.0f, 0.0f);
+    m_view_direction = glm::vec3(0.0f, 0.0f, -1.0f);
+    m_up = glm::vec3(0.0f, 1.0f, 0.0f);   
+}
+
+void Camera::set_projection_matrix(float fov, float aspect_ratio, float near, float far)
+{
+    m_projection_matrix = glm::perspective(glm::radians(fov), aspect_ratio, near, far);
 }
 
 glm::mat4 Camera::get_view_matrix()
 {
-    return glm::lookAt(eye, eye + view_direction, up);
+    return glm::lookAt(m_eye, m_eye + m_view_direction, m_up);
+}
+
+glm::mat4 Camera::get_projection_matrix()
+{
+    return m_projection_matrix;
 }
 
 void Camera::move_forward(float delta)
 {
-    eye += view_direction * delta;
+    m_eye += m_view_direction * delta;
 }
 
 void Camera::move_backward(float delta)
 {
-    eye -= view_direction * delta;
+    m_eye -= m_view_direction * delta;
 }
 
 void Camera::move_left(float delta)
 {
-    // -> resta vector perpendicular a la direccion de la camara y el vector up
-    eye -= glm::normalize(glm::cross(view_direction, up)) * delta;
+    // -> resta vector perpendicular a la direccion de la camara y el vector m_up
+    m_eye -= glm::normalize(glm::cross(m_view_direction, m_up)) * delta;
 }
 
 void Camera::move_right(float delta)
 {
-    // -> suma vector perpendicular a la direccion de la camara y el vector up
-    eye += glm::normalize(glm::cross(view_direction, up)) * delta;
+    // -> suma vector perpendicular a la direccion de la camara y el vector m_up
+    m_eye += glm::normalize(glm::cross(m_view_direction, m_up)) * delta;
 }
 
 void Camera::mouse_look(float x, float y)
 {
     // -> se crean matrices de rotacion en x e y (yaw y pitch)
     //    y luego se aplican a la direccion de la camara
-    glm::mat4 rotation_matrix_x = glm::rotate(glm::mat4(1.0f), glm::radians(-x), up);
-    glm::mat4 rotation_matrix_y = glm::rotate(glm::mat4(1.0f), glm::radians(-y), glm::cross(view_direction, up));
+    glm::mat4 rotation_matrix_x = glm::rotate(glm::mat4(1.0f), glm::radians(-x), m_up);
+    glm::mat4 rotation_matrix_y = glm::rotate(glm::mat4(1.0f), glm::radians(-y), glm::cross(m_view_direction, m_up));
 
-    view_direction = glm::vec3(rotation_matrix_x * rotation_matrix_y * glm::vec4(view_direction, 0.0f));
-    view_direction = glm::normalize(view_direction);
+    m_view_direction = glm::vec3(rotation_matrix_x * rotation_matrix_y * glm::vec4(m_view_direction, 0.0f));
+    m_view_direction = glm::normalize(m_view_direction);
 }
 
-Camera::~Camera(){}
+Camera::~Camera()
+{
+    std::cout << "Liberando recursos de Camera" << std::endl;
+}
 
 
 
