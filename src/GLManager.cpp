@@ -15,7 +15,11 @@ void GLManager::show_gl_version_info() const
     std::cout << "Renderer: " << glGetString(GL_RENDERER) << "\n";
     std::cout << "Version: " << glGetString(GL_VERSION) << "\n";
     std::cout << "Shading Language: " << glGetString(GL_SHADING_LANGUAGE_VERSION)
-        << "\n";
+              << "\n";
+
+    int nrAttributes;
+    glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
+    std::cout << "Máximo de atributos de vértices: " << nrAttributes << "\n";
 }
 
 void GLManager::debug_message(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
@@ -32,6 +36,22 @@ void GLManager::enable_debug() const
     glDebugMessageCallback(debug_message, nullptr);
     glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr,
             GL_TRUE);
+}
+
+void GLManager::toggle_mouse_capture()
+{
+    mouse_captured= !mouse_captured;
+
+    if(mouse_captured)
+    {
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+        SDL_WarpMouseInWindow(window, 800 / 2, 600 / 2);
+    }
+    else
+    {
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+    }
+
 }
 
 void GLManager::init() {
@@ -83,124 +103,105 @@ void GLManager::init() {
     show_gl_version_info();
 }
 
-const std::string GLManager::load_shaders(const std::string &shader_src) 
-{
-    std::ifstream file(shader_src);
-    std::string source;
-
-    if (file.is_open()) 
-    {
-        std::string line;
-        while (std::getline(file, line)) 
-        {
-            source += line + "\n";
-        }
-
-        file.close();
-    }
-
-    return source;
-}
-
-GLuint GLManager::compile_shader(const std::string &shader_src, GLenum shader_type)
-{
-    GLuint shader = glCreateShader(shader_type);
-    const char *src = shader_src.c_str();
-    glShaderSource(shader, 1, &src, nullptr);
-    glCompileShader(shader);
-
-    GLint success;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-    if (!success) 
-    {
-        GLchar info_log[512];
-        glGetShaderInfoLog(shader, 512, nullptr, info_log);
-        std::cerr << "Error al compilar shader: " << info_log << std::endl;
-    }
-
-    return shader;
-}
-
-void GLManager::set_shaders()
-{
-
-    const std::string vertex_shader_source =
-        load_shaders("./shaders/vertex_shader_src.glsl");
-    const std::string fragment_shader_source =
-        load_shaders("./shaders/frag_shader_src.glsl");
-
-    // -> crear shader program
-    shader_program = glCreateProgram();
-
-    // -> compilación de shaders
-    GLuint vertex_shader = compile_shader(vertex_shader_source, GL_VERTEX_SHADER);
-    GLuint fragment_shader =
-        compile_shader(fragment_shader_source, GL_FRAGMENT_SHADER);
-
-    // -> adjuntar shaders al programa
-    glAttachShader(shader_program, vertex_shader);
-    glAttachShader(shader_program, fragment_shader);
-
-    // -> enlazar programa
-    glLinkProgram(shader_program);
-
-    // -> verificar errores de enlace
-    GLint success;
-    glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
-    if (!success) {
-        GLchar info_log[512];
-        glGetProgramInfoLog(shader_program, 512, nullptr, info_log);
-        std::cerr << "Error al enlazar shaders: " << info_log << std::endl;
-    }
-
-    // -> limpiar shaders (ya están adjuntados al programa de shaders)
-    glDeleteShader(vertex_shader);
-    glDeleteShader(fragment_shader);
-}
-
-void GLManager::create_graphics_pipeline() 
-{
-    // Pipeline de OpenGL
-    set_shaders();
-}
-
 void GLManager::pre_render()
 {
-    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
 
     glViewport(0, 0, 800, 600);
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glUseProgram(shader_program);
+    glClearColor(0.106, 0.168, 0.203, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void GLManager::render_mesh(Mesh3D *mesh) 
 {
-    // -> MVP (Model, View, Projection), Model = T * R * S
-    glm::mat4 model_matrix = mesh->get_model_matrix();
-    projection_matrix = this->camera->get_projection_matrix();
-    view_matrix = this->camera->get_view_matrix();
+    if(mesh == nullptr)
+    {
+        std::cerr << "Error: Mesh inválido" << std::endl;
+        return;
+    }
 
-    float current_time = (float) SDL_GetTicks() / 1000.0f;
+    if(mesh->m_shader == nullptr)
+    {
+        std::cerr << "Error: Shader de mesh inválido" << std::endl;
+        return;
+    }
 
-    // -> uniforms
-    GLint time_location = glGetUniformLocation(shader_program, "u_time");
-    GLint u_model_location = glGetUniformLocation(shader_program, "u_model");
-    GLint u_projection_matrix_location = glGetUniformLocation(shader_program, "u_perspective_projection");
-    GLint u_view_matrix_location = glGetUniformLocation(shader_program, "u_view");
+    // -> evita cambiar de shader si no es necesario
+    static Shader *last_shader = nullptr;
+    if(last_shader != mesh->m_shader)
+    {
+        mesh->m_shader->use();
+        last_shader = mesh->m_shader;
+    }
+    
+    switch(mesh->m_type)
+    {
+        case MeshType::DEFAULT:
+        {
+            float current_time = (float) SDL_GetTicks() / 1000.0f;
+            mesh->m_shader->set_uniform_1f("u_time", current_time);
+            break;
+        }
 
-    glUniform1f(time_location, current_time);
-    glUniformMatrix4fv(u_model_location, 1, GL_FALSE, &model_matrix[0][0]);
-    glUniformMatrix4fv(u_projection_matrix_location, 1, GL_FALSE, &projection_matrix[0][0]);
-    glUniformMatrix4fv(u_view_matrix_location, 1, GL_FALSE, &view_matrix[0][0]);
+        case MeshType::TEXTURED:
+        {
+            mesh->bind_textures();
+            break;
+        }   
+        
+        case MeshType::LIGHT_SOURCE:
+        {
+            break;
+        }
+        
+        case MeshType::LIGHT_RECEIVER:
+        {
+            mesh->m_shader->set_uniform_3fv("u_light_position", light_position);
+            mesh->m_shader->set_uniform_3fv("u_view_position", camera->get_position());
+            break;
+        }
+
+        case MeshType::CUSTOM:
+        {
+            break;
+        }
+
+        default:
+        {
+            break;
+        }
+    }
+
+    // -> setear matrices de transformacion MVP para vertex shader
+    mesh->m_shader->set_uniform_mat4f("u_model", mesh->get_model_matrix());
+    mesh->m_shader->set_uniform_mat4f("u_perspective_projection", this->camera->get_projection_matrix());
+    mesh->m_shader->set_uniform_mat4f("u_view", this->camera->get_view_matrix());
 
     glBindVertexArray(mesh->m_vao);
     glBindBuffer(GL_ARRAY_BUFFER, mesh->m_vbo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->m_ebo);
 
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    // -> renderizacion indexada / no indexada
+    if(mesh->m_ebo != 0)
+    {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->m_ebo);
+        glDrawElements(GL_TRIANGLES, mesh->get_num_indices(), GL_UNSIGNED_INT, 0);
+    }
+    else
+    {
+        glDrawArrays(GL_TRIANGLES, 0, mesh->get_num_vertices());
+    }
+
+    // -> deseleccionar texturas activas en caso de que haya
+    if(!mesh->m_textures.empty())
+    {
+        for (int i = 0; i < mesh->m_textures.size(); i++)
+        {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+    }
+
 }
 
 void GLManager::swap_window()
@@ -218,10 +219,6 @@ GLManager::~GLManager()
 
     std::cout << "Liberando recursos de GLManager" << std::endl;
 
-    if (shader_program)
-    {
-        glDeleteProgram(shader_program);
-    }
 
     if (context)
     {

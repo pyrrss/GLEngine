@@ -5,28 +5,10 @@
 #include "../include/Mesh3D.hpp"
 
 
-void Mesh3D::create_mesh(std::vector<GLfloat> vertex_data)
+void Mesh3D::create_mesh(std::vector<GLfloat> vertex_data, std::vector<GLuint> index_data)
 {
-    /*
-    // -> data de vértices: xyz normalizados [-1, 1] y rgb normalizados [0, 1]
-    vertex_data = {
-        // -> 0 - vértice 1
-        -0.7f, -0.7f, 0.0f, // -> v inferior izquierdo
-            0.0f, 1.0f, 1.0f,   // -> rgb
-                                // -> 1 - vértice 2
-            0.7f, -0.7f, 0.0f,  // -> v inferior derecho
-            1.0f, 0.0f, 1.0f,   // -> rgb
-                                // -> 2 - vértice 3
-            0.7f, 0.7f, 0.0f,   // -> v superior derecho
-            0.0f, 1.0f, 1.0f,   // -> rgb
-                                // -> 3 - vértice 4
-            -0.7f, 0.7f, 0.0f,  // -> v superior izquierdo
-            1.0f, 0.0f, 1.0f,   // -> rgb
-
-    };
-    */
-    
     m_vertex_data = vertex_data;
+    m_index_data = index_data;
 
     // -> crear VAO
     glGenVertexArrays(1, &m_vao);
@@ -49,7 +31,7 @@ void Mesh3D::create_mesh(std::vector<GLfloat> vertex_data)
             3, // -> 3 componentes de posición (xyz)
             GL_FLOAT,            // > tipo de dato
             GL_FALSE,            // -> normalizar
-            sizeof(GLfloat) * 6, // -> stride
+            sizeof(GLfloat) * 11, // -> stride
             0                    // -> offset
     );
 
@@ -59,21 +41,43 @@ void Mesh3D::create_mesh(std::vector<GLfloat> vertex_data)
             3,                   // -> 3 componentes de color (rgb)
             GL_FLOAT,            // -> tipo de dato
             GL_FALSE,            // -> normalizar
-            sizeof(GLfloat) * 6, // -> stride
+            sizeof(GLfloat) * 11, // -> stride
             (GLvoid *)(sizeof(GLfloat) * 3) // -> offset (rgb empieza en la posición 3)
     );
 
-    // -> crear IBO / EBO
-    m_index_data = {0, 1, 3, 3, 2, 1};
-
-    glGenBuffers(1, &m_ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-    glBufferData(
-            GL_ELEMENT_ARRAY_BUFFER, 
-            sizeof(GLuint) * m_index_data.size(),
-            m_index_data.data(), 
-            GL_STATIC_DRAW
+    glEnableVertexAttribArray(2); // -> habilita el atributo de vértice 2 (uv)
+    glVertexAttribPointer(
+            2,                  // -> atributo de vértice 2
+            2,                  // -> 2 componentes de uv (uv)
+            GL_FLOAT,          // -> tipo de dato
+            GL_FALSE,         // -> normalizar
+            sizeof(GLfloat) * 11, // -> stride
+            (GLvoid *)(sizeof(GLfloat) * 6)  // -> offset (uv empieza en la posición 6)
     );
+
+    glEnableVertexAttribArray(3); // -> habilita el atributo de vértice 3 (normal)
+    glVertexAttribPointer(
+        3,                 // -> atributo de vértice 3
+        3,                 // -> 3 componentes de normal (xyz)
+        GL_FLOAT,        // -> tipo de dato
+        GL_FALSE,        // -> normalizar
+        sizeof(GLfloat) * 11, // -> stride
+        (GLvoid *)(sizeof(GLfloat) * 8) // -> offset (normal empieza en la posición 8)
+    );
+
+    // -> crear IBO / EBO
+
+    if(!m_index_data.empty())
+    {
+        glGenBuffers(1, &m_ebo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+        glBufferData(
+                GL_ELEMENT_ARRAY_BUFFER, 
+                sizeof(GLuint) * m_index_data.size(),
+                m_index_data.data(), 
+                GL_STATIC_DRAW 
+        );
+    }
 
     // -> limpiar
     glBindVertexArray(0);
@@ -97,6 +101,36 @@ void Mesh3D::rotate(float angle, glm::vec3 axis)
 void Mesh3D::scale(float x, float y, float z)
 {
     m_model_matrix = glm::scale(m_model_matrix, glm::vec3(x, y, z));
+}
+
+int Mesh3D::get_num_indices() const
+{
+    return m_index_data.size();
+}
+
+int Mesh3D::get_num_vertices() const
+{
+    return m_vertex_data.size() / 8; // -> 8 componentes por vértice
+}
+
+void Mesh3D::set_shader(Shader *shader)
+{
+    this->m_shader = shader;
+}
+
+void Mesh3D::add_texture(Texture *texture)
+{
+    m_textures.push_back(texture);
+}
+
+void Mesh3D::bind_textures()
+{
+    for (int i = 0; i < m_textures.size(); i++)
+    {
+        glActiveTexture(GL_TEXTURE0 + i);
+        m_textures[i]->bind();
+        m_shader->set_uniform_1i("u_texture" + std::to_string(i), i);
+    }
 }
 
 glm::mat4 Mesh3D::get_model_matrix()

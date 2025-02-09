@@ -58,6 +58,11 @@ void Camera::mouse_look(float x, float y)
     m_view_direction = glm::normalize(m_view_direction);
 }
 
+glm::vec3 Camera::get_position()
+{
+    return m_eye;
+}
+
 Camera::~Camera()
 {
     std::cout << "Liberando recursos de Camera" << std::endl;

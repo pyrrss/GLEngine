@@ -25,6 +25,8 @@ class Camera
         void move_right(float delta);
 
         void mouse_look(float x, float y);
+
+        glm::vec3 get_position();
 };
 
 #endif
