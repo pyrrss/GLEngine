@@ -14,6 +14,8 @@
 #include "../include/Texture.hpp"
 #include "../include/VertexData.hpp"
 #include "../include/MeshType.h"
+#include "../include/UIManager.hpp"
+
 
 void handle_keyboard_input(GLManager *gl_manager, Camera *camera, Mesh3D *light_source_cube)
 {
@@ -65,8 +67,6 @@ void handle_keyboard_input(GLManager *gl_manager, Camera *camera, Mesh3D *light_
 
 }
 
-
-// TODO: usar ImGui para mostrar informacion de la escena y modificar parametros
 int main() 
 {
     
@@ -74,6 +74,10 @@ int main()
     GLManager gl_manager;
     gl_manager.init();
     gl_manager.enable_debug();
+
+    // -> GUI
+    UIManager ui_manager;
+    ui_manager.init(gl_manager.get_window(), gl_manager.get_context());
 
     // -> Cámara
     Camera camera = Camera();
@@ -195,9 +199,9 @@ int main()
                 running = false;
             }
 
-            if (event.type == SDL_MOUSEMOTION) 
+            if (event.type == SDL_MOUSEMOTION && gl_manager.mouse_captured) 
             {
-                camera.mouse_look(event.motion.xrel, event.motion.yrel);
+               camera.mouse_look(event.motion.xrel, event.motion.yrel);
             }
 
             if(event.type == SDL_KEYDOWN)
@@ -211,8 +215,15 @@ int main()
                 {
                     running = false;
                 }
+
             }
+
+            // ----- ImGui -----
+            ui_manager.process_event(event);
+                
         }
+    
+        ui_manager.prepare_frame();
 
         handle_keyboard_input(&gl_manager, &camera, &light_source_cube);
 
@@ -233,13 +244,12 @@ int main()
             gl_manager.render_mesh(mesh);
         }
 
-
-        //        gl_manager.render_mesh(model.get());
+        // -> renderizado de GUI
+        ui_manager.render();
 
         // -> doble-buffer
         gl_manager.swap_window();
     }
-
 
     return 0;
 }

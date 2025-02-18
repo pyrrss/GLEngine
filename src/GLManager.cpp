@@ -9,6 +9,10 @@
 #include "../include/glad/glad.h"
 #include "../include/GLManager.hpp"
 
+#include "../imgui/imgui.h"
+#include "../imgui/imgui_impl_sdl2.h"
+#include "../imgui/imgui_impl_opengl3.h"
+
 void GLManager::show_gl_version_info() const 
 {
     std::cout << "Vendor: " << glGetString(GL_VENDOR) << "\n";
@@ -212,6 +216,16 @@ void GLManager::swap_window()
 void GLManager::set_camera(Camera *camera)
 {
     this->camera = camera;
+}
+
+SDL_Window* GLManager::get_window() const
+{
+    return window;
+}
+
+SDL_GLContext GLManager::get_context() const
+{
+    return context;
 }
 
 GLManager::~GLManager()

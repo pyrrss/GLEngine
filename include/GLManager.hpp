@@ -18,12 +18,9 @@ class GLManager
         float u_rotation_angle = 0.0f;
         glm::mat4 projection_matrix; // -> perspectiva 
         glm::mat4 view_matrix; // -> vista (camara)
-       
-        bool mouse_captured = true;
 
         Camera *camera;
-
-
+ 
         void show_gl_version_info() const; // -> muestra info de OpenGL
         static void debug_message(GLenum source, GLenum type, GLuint id, GLenum severity,
                                   GLsizei length, const GLchar *message,
@@ -41,10 +38,14 @@ class GLManager
         void render_mesh(Mesh3D *mesh);  // -> renderiza un objeto 3D
 
         void set_camera(Camera *camera);
-        
+       
+        SDL_Window* get_window() const; // -> obtener la ventana
+        SDL_GLContext get_context() const; // -> obtener el contexto de OpenGL
+
         // -> ver un mejor lugar para esto
         glm::vec3 light_position = glm::vec3(1.2f, 1.0f, 2.0f);;
 
+        bool mouse_captured = true;
 };
 
 #endif
