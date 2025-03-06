@@ -16,7 +16,6 @@ class Mesh3D
         glm::mat4 m_model_matrix = glm::mat4(1.0f); // -> TRS 
         std::vector<GLfloat> m_vertex_data; 
         std::vector<GLuint> m_index_data;
-        std::string type;
 
     public:
         Mesh3D() = default;
@@ -33,6 +32,10 @@ class Mesh3D
         
         void add_texture(Texture *texture);
         void bind_textures();    
+
+        void orbit_around(glm::vec3 point, float radius, float speed, glm::vec3 *light_position);       
+
+        glm::vec3 get_position();
 
         glm::mat4 get_model_matrix();
 

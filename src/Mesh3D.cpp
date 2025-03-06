@@ -133,6 +133,39 @@ void Mesh3D::bind_textures()
     }
 }
 
+void Mesh3D::orbit_around(glm::vec3 point, float radius, float speed, glm::vec3 *light_position)
+{
+    static float angle = 0.0f;
+    angle += 1.0f;
+
+    if(angle >= 360.0f)
+    {
+        angle = 0.0f;
+    }
+
+    m_model_matrix = glm::mat4(1.0f);
+
+    m_model_matrix = glm::translate(m_model_matrix, point);
+    
+    m_model_matrix = glm::rotate(m_model_matrix, glm::radians(angle * speed), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    m_model_matrix = glm::translate(m_model_matrix, glm::vec3(radius, 0.0f, 0.0f));
+    
+    // -> TODO: probablemente encapsular en clase light_source
+    if(m_type == MeshType::LIGHT_SOURCE)
+    {
+        // -> mover la posicion de la luz junto el mesh que es fuente de luz
+        light_position->x = m_model_matrix[3][0];
+        light_position->y = m_model_matrix[3][1];
+        light_position->z = m_model_matrix[3][2];
+    }
+}
+
+glm::vec3 Mesh3D::get_position()
+{
+    return glm::vec3(m_model_matrix[3]);
+}
+
 glm::mat4 Mesh3D::get_model_matrix()
 {
     return m_model_matrix;

@@ -161,6 +161,8 @@ void GLManager::render_mesh(Mesh3D *mesh)
         
         case MeshType::LIGHT_RECEIVER:
         {
+            mesh->bind_textures();
+
             mesh->m_shader->set_uniform_3fv("u_light_position", light_position);
             mesh->m_shader->set_uniform_3fv("u_view_position", camera->get_position());
             break;

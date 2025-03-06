@@ -16,7 +16,6 @@
 #include "../include/MeshType.h"
 #include "../include/UIManager.hpp"
 
-
 void handle_keyboard_input(GLManager *gl_manager, Camera *camera, Mesh3D *light_source_cube)
 {
     const Uint8 *k_state = SDL_GetKeyboardState(NULL);
@@ -69,13 +68,12 @@ void handle_keyboard_input(GLManager *gl_manager, Camera *camera, Mesh3D *light_
 
 int main() 
 {
-    
     // -> Manejador de OpenGL
     GLManager gl_manager;
     gl_manager.init();
     gl_manager.enable_debug();
 
-    // -> GUI
+    // -> Manejador de GUI
     UIManager ui_manager;
     ui_manager.init(gl_manager.get_window(), gl_manager.get_context());
 
@@ -94,6 +92,9 @@ int main()
     Shader light_receiver_shader = Shader("shaders/my_vertex_shader_src.glsl", 
                                     "shaders/light_receiver_frag_shader_src.glsl");
 
+    Shader full_shader = Shader("shaders/full_vertex_shader_src.glsl", 
+                                "shaders/full_frag_shader_src.glsl");
+
     // Test de meshes de ejemplo
 
     std::vector<Mesh3D*> meshes;      
@@ -104,7 +105,6 @@ int main()
     mesh1.set_shader(&untextured_shader);
     mesh1.m_type = MeshType::DEFAULT;
     meshes.push_back(&mesh1);
-
 
     Mesh3D mesh2 = Mesh3D();
     mesh2.create_mesh(VertexData::mesh2_vertex_data, {0, 1, 2, 0, 2, 3});
@@ -123,11 +123,11 @@ int main()
     //std::unique_ptr<Mesh3D> model =
     //    ObjectLoader::load_object("models/jeep_v02.obj");
 
-
     // -> Texturas
     
     Texture container_texture = Texture("assets/container.jpg");
     Texture awesome_texture = Texture("assets/awesomeface.png");
+    Texture container2_texture = Texture("assets/container2.png");
 
     // -> ejemplo quad con textura
     Mesh3D textured_mesh = Mesh3D();
@@ -162,7 +162,7 @@ int main()
     meshes.push_back(&textured_pyramid);
 
     // -> TODO: Hacer un suelo para la escena global
-
+    
 
     // -> LIGHTING
     
@@ -178,14 +178,31 @@ int main()
     Mesh3D light_receiver_cube = Mesh3D();
     light_receiver_cube.create_mesh(VertexData::light_receiver_vertex_data, {});
     light_receiver_cube.translate(5.0f, 2.0f, 4.0f);
-    light_receiver_cube.set_shader(&light_receiver_shader);
+    light_receiver_cube.set_shader(&full_shader);
+    light_receiver_cube.add_texture(&container2_texture);
     light_receiver_cube.m_type = MeshType::LIGHT_RECEIVER;
     meshes.push_back(&light_receiver_cube);
     
-    light_receiver_shader.use();
-    light_receiver_shader.set_uniform_3fv("u_object_color", glm::vec3(1.0f, 0.5f, 0.31f));
-    light_receiver_shader.set_uniform_3fv("u_light_color", glm::vec3(1.0f, 1.0f, 1.0f));
-    light_receiver_shader.set_uniform_3fv("u_light_position", light_position);
+    // light_receiver_shader.set_uniform_3fv("u_object_color", glm::vec3(1.0f, 0.5f, 0.31f));
+   
+    // -> uniforms para iluminacion
+    full_shader.use();
+    full_shader.set_uniform_3fv("u_light_position", light_position);
+    
+    // -> uniforms para propiedades del material
+    // -> (ambient, diffuse, specular, shininess)
+    // full_shader.set_uniform_3fv("u_object_color", glm::vec3(1.0f, 0.5f, 0.31f));
+    full_shader.set_uniform_3fv("material.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+    full_shader.set_uniform_1f("material.shininess", 32.0f);
+
+    // -> uniforms para la luz
+    full_shader.set_uniform_3fv("light.ambient", glm::vec3(0.5f, 0.5f, 0.5f));
+    full_shader.set_uniform_3fv("light.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
+    full_shader.set_uniform_3fv("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+ 
+    full_shader.set_uniform_1i("material.diffuse", 0);
+
+    glm::vec3 light_color;
 
     SDL_Event event;
 
@@ -233,7 +250,24 @@ int main()
         textured_mesh.rotate(4.0f, glm::vec3(1.0f, 1.0f, 1.0f));
         textured_cube.rotate(1.0f, glm::vec3(1.0f, 1.0f, 1.0f));
         textured_pyramid.rotate(1.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-        light_receiver_cube.rotate(1.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+        // light_receiver_cube.rotate(1.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+            
+        light_source_cube.orbit_around(light_receiver_cube.get_position(), 5.0f, 1.0f, &gl_manager.light_position);
+        
+        // -> modificaciones de color de luz
+        
+        /*
+        light_color.x = sin(SDL_GetTicks() * 0.01f) * 2.0f;
+        light_color.y = sin(SDL_GetTicks() * 0.01f) * 0.7f;
+        light_color.z = sin(SDL_GetTicks() * 0.01f) * 1.3f;
+
+        glm::vec3 diffuse_color = light_color * glm::vec3(0.5f); 
+        glm::vec3 ambient_color = diffuse_color * glm::vec3(0.2f);
+
+        full_shader.use();
+        full_shader.set_uniform_3fv("light.ambient", ambient_color);
+        full_shader.set_uniform_3fv("light.diffuse", diffuse_color);
+        */
 
         // -> opciones de pre-renderizado
         gl_manager.pre_render();
@@ -243,7 +277,7 @@ int main()
         {
             gl_manager.render_mesh(mesh);
         }
-
+        
         // -> renderizado de GUI
         ui_manager.render();
 

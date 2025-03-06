@@ -42,7 +42,7 @@ class GLManager
         SDL_Window* get_window() const; // -> obtener la ventana
         SDL_GLContext get_context() const; // -> obtener el contexto de OpenGL
 
-        // -> ver un mejor lugar para esto
+        // -> TODO: ver un mejor lugar para esto
         glm::vec3 light_position = glm::vec3(1.2f, 1.0f, 2.0f);;
 
         bool mouse_captured = true;
