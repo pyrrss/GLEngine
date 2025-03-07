@@ -129,7 +129,6 @@ void Mesh3D::bind_textures()
     {
         glActiveTexture(GL_TEXTURE0 + i);
         m_textures[i]->bind();
-        m_shader->set_uniform_1i("u_texture" + std::to_string(i), i);
     }
 }
 

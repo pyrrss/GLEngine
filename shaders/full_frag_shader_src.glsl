@@ -8,16 +8,14 @@ in vec3 v_frag_position;
 
 out vec4 frag_color;
 
-uniform sampler2D u_texture0;
-
 uniform vec3 u_object_color; // -> color del objeto (si hay textura no se usa)
 uniform vec3 u_light_position; // -> posicion de la fuente de luz
 uniform vec3 u_view_position; // -> posicion de la camara
 
 struct Material // -> coeficientes arbitrarios del material
 {
-    sampler2D diffuse; // -> textura (diffuse map)
-    vec3 specular;
+    sampler2D diffuse; // -> canal de textura (diffuse map)
+    sampler2D specular;
     float shininess;
 };
 
@@ -40,9 +38,6 @@ void main()
     // * color 
     // * texturizar
     // * iluminacion
-    
-    // -> texturizado
-    vec3 frag_texture = texture(u_texture0, v_texcoord).rgb; 
     
     // -> iluminacion siguiendo modelo PHONG
     
@@ -68,13 +63,12 @@ void main()
     // -> spec := angulo entre direccion de la vista y direccion de la reflexion
     // -> pow(spec, 32) := brillo del objeto
     // -> 32 := brillo del objeto arbitrario (material.shininess)
-    // -> material.specular arbitrario
     float spec = pow(max(dot(view_direction, reflect_direction), 0.0), material.shininess);
-    vec3 specular = (spec * material.specular) * light.specular;
+    vec3 specular = light.specular * spec * vec3(texture(material.specular, v_texcoord));
 
     // -> MODELO PHONG: luz = ambiente + difusa + especular
     // -> color reflejado = (ambiente + difusa + especular) * color_objeto
-    vec3 result_color = (ambient + diffuse + specular) * frag_texture;
+    vec3 result_color = ambient + diffuse + specular;
 
     // -> color resultante es el "color que refleja el objeto" 
     // -> luego de aplicar la luz sobre el objeto

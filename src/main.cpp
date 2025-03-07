@@ -120,14 +120,12 @@ int main()
     mesh1.m_type = MeshType::DEFAULT;
     meshes.push_back(&mesh3);
 
-    //std::unique_ptr<Mesh3D> model =
-    //    ObjectLoader::load_object("models/jeep_v02.obj");
-
     // -> Texturas
     
     Texture container_texture = Texture("assets/container.jpg");
     Texture awesome_texture = Texture("assets/awesomeface.png");
     Texture container2_texture = Texture("assets/container2.png");
+    Texture container2_specular_map = Texture("assets/container2_specular.png");
 
     // -> ejemplo quad con textura
     Mesh3D textured_mesh = Mesh3D();
@@ -180,30 +178,34 @@ int main()
     light_receiver_cube.translate(5.0f, 2.0f, 4.0f);
     light_receiver_cube.set_shader(&full_shader);
     light_receiver_cube.add_texture(&container2_texture);
+    light_receiver_cube.add_texture(&container2_specular_map);
     light_receiver_cube.m_type = MeshType::LIGHT_RECEIVER;
     meshes.push_back(&light_receiver_cube);
-    
-    // light_receiver_shader.set_uniform_3fv("u_object_color", glm::vec3(1.0f, 0.5f, 0.31f));
    
+    Mesh3D light_receiver_cube2 = Mesh3D();
+    light_receiver_cube2.create_mesh(VertexData::light_receiver_vertex_data, {});
+    light_receiver_cube2.translate(10.0f, 2.0f, 4.0f);
+    light_receiver_cube2.set_shader(&full_shader);
+    light_receiver_cube2.add_texture(&container_texture);
+    light_receiver_cube2.add_texture(&container2_specular_map);
+    light_receiver_cube2.m_type = MeshType::LIGHT_RECEIVER;
+    meshes.push_back(&light_receiver_cube2);
+
     // -> uniforms para iluminacion
     full_shader.use();
     full_shader.set_uniform_3fv("u_light_position", light_position);
     
     // -> uniforms para propiedades del material
     // -> (ambient, diffuse, specular, shininess)
-    // full_shader.set_uniform_3fv("u_object_color", glm::vec3(1.0f, 0.5f, 0.31f));
-    full_shader.set_uniform_3fv("material.specular", glm::vec3(1.0f, 1.0f, 1.0f));
     full_shader.set_uniform_1f("material.shininess", 32.0f);
+    full_shader.set_uniform_1i("material.diffuse", 0); // -> canal textura 0 (diffuse map)
+    full_shader.set_uniform_1i("material.specular", 1); // -> canal textura 1 (specular map)
 
-    // -> uniforms para la luz
-    full_shader.set_uniform_3fv("light.ambient", glm::vec3(0.5f, 0.5f, 0.5f));
+    // -> uniforms para luz
+    full_shader.set_uniform_3fv("light.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
     full_shader.set_uniform_3fv("light.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
     full_shader.set_uniform_3fv("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
  
-    full_shader.set_uniform_1i("material.diffuse", 0);
-
-    glm::vec3 light_color;
-
     SDL_Event event;
 
     bool running = true;
@@ -252,23 +254,8 @@ int main()
         textured_pyramid.rotate(1.0f, glm::vec3(0.0f, 1.0f, 0.0f));
         // light_receiver_cube.rotate(1.0f, glm::vec3(0.0f, 1.0f, 0.0f));
             
-        light_source_cube.orbit_around(light_receiver_cube.get_position(), 5.0f, 1.0f, &gl_manager.light_position);
+        light_source_cube.orbit_around(light_receiver_cube.get_position(), 10.0f, 1.0f, &gl_manager.light_position);
         
-        // -> modificaciones de color de luz
-        
-        /*
-        light_color.x = sin(SDL_GetTicks() * 0.01f) * 2.0f;
-        light_color.y = sin(SDL_GetTicks() * 0.01f) * 0.7f;
-        light_color.z = sin(SDL_GetTicks() * 0.01f) * 1.3f;
-
-        glm::vec3 diffuse_color = light_color * glm::vec3(0.5f); 
-        glm::vec3 ambient_color = diffuse_color * glm::vec3(0.2f);
-
-        full_shader.use();
-        full_shader.set_uniform_3fv("light.ambient", ambient_color);
-        full_shader.set_uniform_3fv("light.diffuse", diffuse_color);
-        */
-
         // -> opciones de pre-renderizado
         gl_manager.pre_render();
 

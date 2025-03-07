@@ -29,7 +29,7 @@ Texture::Texture(const std::string &image_path)
     // -> cargar textura
     GLenum format;
 
-    if (m_nr_channels == 1)
+    if(m_nr_channels == 1)
     {
         format = GL_RED;
     }
